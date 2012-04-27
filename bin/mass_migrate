@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'rubygems'
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'mass_migrator'
+
+options = {}
+opts_parser = OptionParser.new do |o|
+  o.banner = "Usage: mass_migrate (up|show) [OPTIONS]"
+
+  o.on '-t', '--table-pattern [PATTERN]', 'Pattern for migrated tables' do |pattern|
+    options[:tables] = pattern
+  end
+
+  o.on '-c', '--conect-uri [URI]', 'Connection uri (in sequel format)' do |uri|
+    options[:connect_uri] = uri
+  end
+
+  o.on '-m', '--migrations [PATH]', 'Path to directory with migrations' do |path|
+    options[:migrations] = path
+  end
+
+  o.on '-v', '--verbose', 'Be verbose' do
+    options[:verbose] = true
+  end
+
+
+  o.on_tail '-h', '--help', 'Show this message' do
+    puts o
+    exit
+  end
+end
+opts_parser.parse!
+COMMANDS = %W(up show)
+connect_uri    = options.fetch(:connect_uri, false)
+verbose        = options.fetch(:verbose,     false)
+migrations     = options.fetch(:migrations,  false)
+tables_pattern = options.fetch(:tables,      false)
+command        = ARGV.shift
+if !tables_pattern || !connect_uri || !migrations || !COMMANDS.include?(command)
+  puts opts_parser
+  exit
+end
+regex = Regexp.new(tables_pattern)
+db = Sequel.connect connect_uri
+migrator = MassMigrator.new(regex, :migrations => migrations, :db => db)
+
+case command
+when 'up'
+  migrator.run_pending_migrations
+when 'show'
+  migrator.pending_migrations.each do |migration|
+    puts "Migration #{migration.name} on #{migration.table_name}"
+  end
+end
