@@ -29,7 +29,7 @@ Then you need to perform a migration.
 
 ### Via command-line tool
 
-`mass_migrate up -c 'mysql2://localhost/test_db' -t "mentions_client_\\d+" -m 'directory/with/migrations' --verbose
+`mass_migrate up -c 'mysql2://localhost/test_db' -t "mentions_client_\\d+" -m 'directory/with/migrations' --verbose`
 
 ### Via ruby API
 
