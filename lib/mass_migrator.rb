@@ -12,7 +12,7 @@ class MassMigrator
     @tables_pattern = tables_pattern
     @options        = options
     initialize_schema_info_table
-    load_migration_files
+    require_migration_files
   end
 
   def tables
@@ -43,7 +43,7 @@ class MassMigrator
     tables.map {|table| instantiate_migrations_for(table) }.compact.flatten
   end
 
-  def load_migration_files
+  def require_migration_files
     migrations_path = options[:migrations]
     if migrations_path
       Dir["#{File.expand_path(migrations_path)}/*.rb"].each do |migration|
@@ -74,8 +74,9 @@ class MassMigrator
 
   def passed_migrations_records
     @migration_records = schema_info_table.all.inject({}) do |result, record|
-      result[record[:table_name]] ||= []
-      result[record[:table_name]] << record[:migration_name]
+      table = record[:table_name].to_sym
+      result[table] ||= []
+      result[table] << record[:migration_name]
       result
     end
   end

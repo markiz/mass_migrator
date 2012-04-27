@@ -45,7 +45,8 @@ describe MassMigrator do
 
   it "runs migrations" do
     subject.run_pending_migrations
-    subject.pending_migrations.should be_empty
+    described_class.new(/^mentions_client_3$/, :db => $db).pending_migrations.should be_empty
+
   end
 
   it "creates records about run migrations" do
