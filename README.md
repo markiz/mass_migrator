@@ -38,3 +38,7 @@ require 'mass_migrator'
 db = Sequel.mysql2 "test_db"
 MassMigrator.new(/mentions_client_\d+/, :db => db, :migrations => "path/to/migrations").run_pending_migrations
 ```
+
+### Where is info about run migrations kept?
+
+Schema info table (configurable, default name is `mm_schema_info`) is created prior to running migrations.
