@@ -3,13 +3,18 @@ require 'spec_helper'
 describe MassMigrator do
   subject { MassMigrator.new(/^mentions_client_3$/, :db => $db) }
 
+  def table_columns(table_name)
+    $db.schema(table_name, :reload => true).map {|(column, data)| column }
+  end
+
   let!(:migration_class) do
-    MassMigrator::Migration.list.clear
     Class.new(MassMigrator::Migration) do
       def up
-        alter_table table_name do
-          add_column :created_at, DateTime
-        end
+        add_column table_name, :created_at, DateTime
+      end
+
+      def down
+        drop_column table_name, :created_at
       end
 
       def self.name
@@ -46,7 +51,7 @@ describe MassMigrator do
   it "runs migrations" do
     subject.run_pending_migrations
     described_class.new(/^mentions_client_3$/, :db => $db).pending_migrations.should be_empty
-
+    table_columns(:mentions_client_3).should include(:created_at)
   end
 
   it "creates records about run migrations" do
@@ -62,5 +67,23 @@ describe MassMigrator do
     MassMigrator::Migration.list.clear
     migrator = MassMigrator.new(/^mentions_client_3$/, :db => $db, :migrations => "spec/fixtures/migrations")
     migrator.migrations.size.should > 0
+  end
+
+  it "can revert migrations" do
+    subject.run_pending_migrations
+    table_columns(:mentions_client_3).should include(:created_at)
+    subject.revert_migrations("AddCreatedAt")
+    table_columns(:mentions_client_3).should_not include(:created_at)
+  end
+
+  it "removes records from schema info table upon reverting" do
+    subject.run_pending_migrations
+    $db[:mm_schema_info].filter(:table_name     => 'mentions_client_3',
+                                :migration_name => 'AddCreatedAt').
+                         first.should_not be_nil
+    subject.revert_migrations("AddCreatedAt")
+    $db[:mm_schema_info].filter(:table_name     => 'mentions_client_3',
+                                :migration_name => 'AddCreatedAt').
+                         first.should be_nil
   end
 end

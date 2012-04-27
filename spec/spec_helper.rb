@@ -10,4 +10,9 @@ RSpec.configure do |c|
       $db.drop_table(table) if $db.table_exists?(table)
     end
   end
+
+  c.before(:each) do
+    $db[:mm_schema_info].delete
+    MassMigrator::Migration.list.clear
+  end
 end

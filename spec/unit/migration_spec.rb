@@ -19,7 +19,7 @@ describe MassMigrator::Migration do
 
       def down
         alter_table table_name do
-          drop_column :created_at, DateTime
+          drop_column :created_at
         end
       end
     end
@@ -38,7 +38,7 @@ describe MassMigrator::Migration do
   end
 
   it "can be marked as passed" do
-    subject.passed
+    subject.mark_as_passed
     subject.should_not be_pending
     subject.should be_passed
   end
@@ -55,6 +55,13 @@ describe MassMigrator::Migration do
     table_columns(:mentions_client_2).should_not include(:created_at)
     subject.run
     table_columns(:mentions_client_2).should include(:created_at)
+  end
+
+  it "can be reverted" do
+    subject.run
+    table_columns(:mentions_client_2).should include(:created_at)
+    subject.revert
+    table_columns(:mentions_client_2).should_not include(:created_at)
   end
 
 end

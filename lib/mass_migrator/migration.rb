@@ -24,8 +24,12 @@ class MassMigrator
       !pending?
     end
 
-    def passed
+    def mark_as_passed
       @pending = false
+    end
+
+    def mark_as_pending
+      @pending = true
     end
 
     def name
@@ -33,8 +37,18 @@ class MassMigrator
     end
 
     def run
+      logger.info "Starting migration #{name} on #{table_name}"
       up
-      passed
+      mark_as_passed
+      logger.info "Finished migration #{name} on #{table_name}"
+      self
+    end
+
+    def revert
+      logger.info "Reverting migration #{name} on #{table_name}"
+      down
+      mark_as_pending
+      logger.info "Reverted migration #{name} on #{table_name}"
       self
     end
 
@@ -44,6 +58,10 @@ class MassMigrator
       else
         super
       end
+    end
+
+    def logger
+      @logger = MassMigrator.logger
     end
 
     def inspect

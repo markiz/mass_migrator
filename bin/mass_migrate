@@ -6,7 +6,7 @@ require 'mass_migrator'
 
 options = {}
 opts_parser = OptionParser.new do |o|
-  o.banner = "Usage: mass_migrate (up|show) [OPTIONS]"
+  o.banner = "Usage: mass_migrate (up|show|down [MIGRATION NAME]) [OPTIONS]"
 
   o.on '-t', '--table-pattern [PATTERN]', 'Pattern for migrated tables' do |pattern|
     options[:tables] = pattern
@@ -24,14 +24,13 @@ opts_parser = OptionParser.new do |o|
     options[:verbose] = true
   end
 
-
   o.on_tail '-h', '--help', 'Show this message' do
     puts o
     exit
   end
 end
 opts_parser.parse!
-COMMANDS = %W(up show)
+COMMANDS = %W(up show down)
 connect_uri    = options.fetch(:connect_uri, false)
 verbose        = options.fetch(:verbose,     false)
 migrations     = options.fetch(:migrations,  false)
@@ -43,11 +42,18 @@ if !tables_pattern || !connect_uri || !migrations || !COMMANDS.include?(command)
 end
 regex = Regexp.new(tables_pattern)
 db = Sequel.connect connect_uri
+MassMigrator.verbose = true if verbose
 migrator = MassMigrator.new(regex, :migrations => migrations, :db => db)
 
 case command
 when 'up'
   migrator.run_pending_migrations
+when 'down'
+  unless ARGV.size > 0
+    puts opts_parser
+    exit
+  end
+  migrator.revert_migrations(*ARGV)
 when 'show'
   migrator.pending_migrations.each do |migration|
     puts "Migration #{migration.name} on #{migration.table_name}"

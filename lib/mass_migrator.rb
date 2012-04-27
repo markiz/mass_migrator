@@ -1,9 +1,23 @@
+require 'logger'
 require 'sequel'
 require 'mass_migrator/version'
 require 'mass_migrator/migration'
 
 class MassMigrator
   class DatabaseError < StandardError
+  end
+
+  def self.logger
+    @logger ||= verbose? ? Logger.new(STDOUT) : Logger.new('/dev/null')
+  end
+
+  def self.verbose?
+    !!@verbose
+  end
+
+  def self.verbose=(value)
+    @verbose = value
+    @logger = nil
   end
 
   attr_reader :tables_pattern, :options
@@ -29,12 +43,31 @@ class MassMigrator
     end
   end
 
+  def revert_migrations(*migration_names)
+    migrations = passed_migrations.select {|migration| migration_names.include?(migration.name) }
+    migrations.each do |migration|
+      migration.revert
+      schema_info_table.filter({
+        :table_name     => migration.table_name.to_s,
+        :migration_name => migration.name
+      }).delete
+    end
+  end
+
   def pending_migrations
     migrations.select(&:pending?)
   end
 
+  def passed_migrations
+    migrations.select(&:passed?)
+  end
+
   def migrations
     @migrations ||= load_migrations
+  end
+
+  def logger
+    self.class.logger
   end
 
   protected
@@ -55,7 +88,7 @@ class MassMigrator
   def instantiate_migrations_for(table)
     Migration.list.map do |migration_class|
       migration = migration_class.new(db, table)
-      migration.passed if passed_migrations_records_for(table).include?(migration.name)
+      migration.mark_as_passed if passed_migrations_records_for(table).include?(migration.name)
       migration
     end
   end
