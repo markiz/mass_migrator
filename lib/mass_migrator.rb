@@ -106,7 +106,7 @@ class MassMigrator
   end
 
   def passed_migrations_records
-    @migration_records = schema_info_table.all.inject({}) do |result, record|
+    @migration_records ||= schema_info_table.all.inject({}) do |result, record|
       table = record[:table_name].to_sym
       result[table] ||= []
       result[table] << record[:migration_name]
